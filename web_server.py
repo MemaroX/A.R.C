@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 import pyautogui
+import pyperclip
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -28,7 +29,8 @@ def handle_mouse(data):
 
 @socketio.on('keyboard')
 def handle_keyboard(data):
-    pyautogui.typewrite(data['key'])
+    pyperclip.copy(data['key'])
+    pyautogui.hotkey('ctrl', 'v')
 
 @socketio.on('media')
 def handle_media(data):
