@@ -1,1 +1,1 @@
-Style: Add icons to media controls
+Feature: Add MouseFinder functionality
