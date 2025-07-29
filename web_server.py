@@ -1,7 +1,9 @@
-from flask import Flask, render_template
+
+from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO
 import pyautogui
 import pyperclip
+import os
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -9,6 +11,14 @@ socketio = SocketIO(app)
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/files')
+def list_files():
+    path = os.path.expanduser("~") # Start in the user's home directory
+    files = []
+    for f in os.listdir(path):
+        files.append({'name': f, 'is_dir': os.path.isdir(os.path.join(path, f))})
+    return jsonify(files)
 
 @socketio.on('connect')
 def handle_connect():
@@ -39,11 +49,17 @@ def handle_media(data):
 @socketio.on('power')
 def handle_power(data):
     if data['action'] == 'shutdown':
-        # This will not work on all systems. It's a placeholder.
-        # For a real shutdown, you would need to use os-specific commands.
         print("Simulating shutdown")
     elif data['action'] == 'restart':
         print("Simulating restart")
 
+@socketio.on('launch')
+def handle_launch(data):
+    if os.name == 'nt': # For Windows
+        if data['app'] == 'calc':
+            os.system('calc')
+        elif data['app'] == 'notepad':
+            os.system('notepad')
+
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)

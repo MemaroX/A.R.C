@@ -1,1 +1,1 @@
-Fix: Add Arabic keyboard support using pyperclip
+Feature: Add file browser, app launcher, and more media controls
