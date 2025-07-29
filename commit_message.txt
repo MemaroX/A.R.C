@@ -1,1 +1,1 @@
-Feature: Add file browser, app launcher, and more media controls
+Style: Add icons to media controls
