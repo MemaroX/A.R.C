@@ -1,1 +1,1 @@
-Refactor: Apply OOP principles and clean code
+Docs: Add README.md with project name A.R.C.
