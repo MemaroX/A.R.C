@@ -1,0 +1,21 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Python Remote</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1>Python Remote</h1>
+    <button onclick="fetch('/left_click')">Left Click</button>
+    <button onclick="fetch('/right_click')">Right Click</button>
+
+    <script>
+        // Example of how to send a move command
+        // You can create a more sophisticated UI for this
+        function moveMouse(x, y) {
+            fetch(`/move/${x}/${y}`)
+        }
+    </script>
+</body>
+</html>
