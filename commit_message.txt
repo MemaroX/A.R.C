@@ -1,1 +1,1 @@
-Feature: Add mousepad, keyboard, media, and power controls
+Style: Improve UI with Bootstrap
