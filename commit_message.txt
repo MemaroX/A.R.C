@@ -1,1 +1,1 @@
-Improve: Make MouseFinder glow faster and flickery
+Refactor: Apply OOP principles and clean code

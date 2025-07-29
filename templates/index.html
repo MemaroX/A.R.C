@@ -150,21 +150,38 @@
         });
 
         const fileBrowser = document.getElementById('file-browser');
+        let currentPath = '';
 
-        function loadFiles() {
-            fetch('/files')
+        function loadFiles(path = '') {
+            currentPath = path;
+            fetch(`/files?path=${encodeURIComponent(path)}`)
                 .then(response => response.json())
                 .then(data => {
                     fileBrowser.innerHTML = '';
+                    if (currentPath !== '') {
+                        const upLi = document.createElement('li');
+                        upLi.textContent = '../';
+                        upLi.style.fontWeight = 'bold';
+                        upLi.addEventListener('click', () => {
+                            const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                            loadFiles(parentPath);
+                        });
+                        fileBrowser.appendChild(upLi);
+                    }
                     data.forEach(file => {
                         const li = document.createElement('li');
                         li.textContent = file.name + (file.is_dir ? '/' : '');
+                        if (file.is_dir) {
+                            li.addEventListener('click', () => {
+                                loadFiles(file.path);
+                            });
+                        }
                         fileBrowser.appendChild(li);
                     });
                 });
         }
 
-        document.getElementById('files-tab').addEventListener('click', loadFiles);
+        document.getElementById('files-tab').addEventListener('click', () => loadFiles(''));
 
     </script>
 
