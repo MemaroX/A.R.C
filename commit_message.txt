@@ -1,1 +1,1 @@
-Feature: Add MouseFinder functionality
+Improve: Make MouseFinder glow faster and flickery

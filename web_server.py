@@ -46,30 +46,23 @@ def glow_effect():
     size = 10
     alpha = 1.0
     
-    for _ in range(20): # Expand and fade for a few iterations
+    for _ in range(10): # Fewer, faster iterations
         x, y = pyautogui.position() # Get current mouse position
         
         # Calculate window position to center the circle on the mouse
         win_x = x - size // 2
-        win_y = y - size // 2
+        win_y = y - size - 2
         root.geometry(f'{size}x{size}+{win_x}+{win_y}')
         
         canvas.delete("all")
         canvas.create_oval(0, 0, size, size, fill='red', outline='red')
         
-        # Update transparency (requires a bit of a hack for Tkinter)
-        # This is a simplified approach, actual fading is more complex with Tkinter
-        # For a true fade, you'd need to draw semi-transparent shapes or use a different library
-        
         root.update_idletasks()
         root.update()
         
-        size += 15 # Increase size
-        alpha -= 0.05 # Decrease alpha (for conceptual fading)
-        if alpha < 0:
-            alpha = 0
+        size += 40 # Increase size more aggressively
         
-        time.sleep(0.05)
+        time.sleep(0.01) # Shorter sleep time for faster updates
     
     root.destroy()
 
