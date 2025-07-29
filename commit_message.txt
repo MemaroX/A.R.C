@@ -1,1 +1,1 @@
-Initial commit: Basic web-based remote
+Feature: Add mousepad, keyboard, media, and power controls

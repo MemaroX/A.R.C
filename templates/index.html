@@ -1,21 +1,117 @@
-
 <!DOCTYPE html>
 <html>
 <head>
     <title>Python Remote</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+        }
+        .tab button:hover { background-color: #ddd; }
+        .tab button.active { background-color: #ccc; }
+        .tabcontent {
+            display: none;
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-top: none;
+        }
+        #mousepad {
+            width: 100%;
+            height: 300px;
+            border: 1px solid black;
+            position: relative;
+        }
+    </style>
 </head>
 <body>
-    <h1>Python Remote</h1>
-    <button onclick="fetch('/left_click')">Left Click</button>
-    <button onclick="fetch('/right_click')">Right Click</button>
 
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'Mouse')">Mouse</button>
+        <button class="tablinks" onclick="openTab(event, 'Keyboard')">Keyboard</button>
+        <button class="tablinks" onclick="openTab(event, 'Media')">Media</button>
+        <button class="tablinks" onclick="openTab(event, 'Power')">Power</button>
+    </div>
+
+    <div id="Mouse" class="tabcontent">
+        <h3>Mousepad</h3>
+        <div id="mousepad"></div>
+        <button onclick="socket.emit('mouse', {'type': 'left_click'})">Left Click</button>
+        <button onclick="socket.emit('mouse', {'type': 'right_click'})">Right Click</button>
+    </div>
+
+    <div id="Keyboard" class="tabcontent">
+        <h3>Keyboard</h3>
+        <input type="text" id="keyboard_input">
+        <button onclick="socket.emit('keyboard', {'key': document.getElementById('keyboard_input').value})">Send</button>
+    </div>
+
+    <div id="Media" class="tabcontent">
+        <h3>Media Controls</h3>
+        <button onclick="socket.emit('media', {'key': 'playpause'})">Play/Pause</button>
+        <button onclick="socket.emit('media', {'key': 'volumeup'})">Volume Up</button>
+        <button onclick="socket.emit('media', {'key': 'volumedown'})">Volume Down</button>
+    </div>
+
+    <div id="Power" class="tabcontent">
+        <h3>Power Options</h3>
+        <button onclick="socket.emit('power', {'action': 'shutdown'})">Shutdown</button>
+        <button onclick="socket.emit('power', {'action': 'restart'})">Restart</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.2/socket.io.js"></script>
     <script>
-        // Example of how to send a move command
-        // You can create a more sophisticated UI for this
-        function moveMouse(x, y) {
-            fetch(`/move/${x}/${y}`)
+        const socket = io();
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
         }
+
+        const mousepad = document.getElementById('mousepad');
+        let lastX = 0;
+        let lastY = 0;
+
+        mousepad.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const dx = touch.clientX - lastX;
+            const dy = touch.clientY - lastY;
+            lastX = touch.clientX;
+            lastY = touch.clientY;
+            socket.emit('mouse', { type: 'move', dx, dy });
+        });
+
+        mousepad.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            lastX = touch.clientX;
+            lastY = touch.clientY;
+        });
+
+        // Open the first tab by default
+        document.getElementsByClassName("tablinks")[0].click();
+
     </script>
+
 </body>
 </html>
