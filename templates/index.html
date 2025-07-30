@@ -68,6 +68,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="apps-tab" data-bs-toggle="tab" data-bs-target="#apps" type="button" role="tab" aria-controls="apps" aria-selected="false">Apps</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="winamp-tab" data-bs-toggle="tab" data-bs-target="#winamp" type="button" role="tab" aria-controls="winamp" aria-selected="false">Winamp</button>
+            </li>
         </ul>
 
         <div class="tab-content" id="myTabContent">
@@ -127,6 +130,48 @@
                     <button class="btn btn-primary" onclick="socket.emit('launch', {'app': 'calc'})">Calculator</button>
                     <button class="btn btn-primary" onclick="socket.emit('launch', {'app': 'notepad'})">Notepad</button>
                 </div>
+            </div>
+
+            <div class="tab-pane fade" id="winamp" role="tabpanel" aria-labelledby="winamp-tab">
+                <h3 class="mt-2">Winamp Controls</h3>
+                <div class="btn-group mb-3">
+                    <button class="btn btn-success" onclick="socket.emit('winamp_control', {'action': 'play_pause'})">Play/Pause</button>
+                    <button class="btn btn-success" onclick="socket.emit('winamp_control', {'action': 'next_track'})">Next</button>
+                    <button class="btn btn-success" onclick="socket.emit('winamp_control', {'action': 'prev_track'})">Previous</button>
+                    <input type="range" class="form-range w-25 mx-2" min="0" max="100" value="50" id="winampVolumeRange" onchange="socket.emit('winamp_control', {'action': 'set_volume', 'volume': this.value})">
+                </div>
+                <h4 class="mt-4">Current Track Info</h4>
+                <div class="mb-3">
+                    <p>Title: <span id="current-track-title">N/A</span></p>
+                    <p>Status: <span id="playback-status">Unknown</span></p>
+                    <p>Time: <span id="playback-current-time">00:00</span> / <span id="playback-total-time">00:00</span></p>
+                    <button class="btn btn-secondary" onclick="socket.emit('winamp_get_track_info'); socket.emit('winamp_get_playback_time');"><i class="fas fa-sync-alt"></i> Refresh Info</button>
+                </div>
+
+                <h4 class="mt-4">Playlist Controls</h4>
+                <div class="mb-3">
+                    <p>Playlist Length: <span id="playlist-length">0</span></p>
+                    <p>Current Position: <span id="playlist-position">0</span></p>
+                    <div class="input-group mb-3">
+                        <input type="number" class="form-control" id="winamp_jump_index" placeholder="Jump to index...">
+                        <button class="btn btn-primary" onclick="socket.emit('winamp_jump_to_track', {'index': parseInt(document.getElementById('winamp_jump_index').value)})">Jump</button>
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="winamp_file_path" placeholder="Enter file path to add...">
+                        <button class="btn btn-primary" onclick="socket.emit('winamp_add_file', {'file_path': document.getElementById('winamp_file_path').value})">Add File</button>
+                    </div>
+                    <button class="btn btn-danger" onclick="socket.emit('winamp_clear_playlist')">Clear Playlist</button>
+                </div>
+
+                <h4 class="mt-4">Playback Modes</h4>
+                <div class="btn-group mb-3">
+                    <button class="btn btn-secondary" id="shuffle-toggle-btn" onclick="socket.emit('winamp_toggle_shuffle')">Shuffle: <span id="shuffle-status">Unknown</span></button>
+                    <button class="btn btn-secondary" id="repeat-toggle-btn" onclick="socket.emit('winamp_toggle_repeat')">Repeat: <span id="repeat-status">Unknown</span></button>
+                </div>
+
+                <div id="winamp-status" class="mt-2"></div>
+
+                
             </div>
         </div>
     </div>
@@ -198,6 +243,134 @@
                 audioSwitchStatusDiv.innerHTML = `<div class="alert alert-info">Attempted to switch global audio to ${response.device_name}. Please verify.</div>`;
             }
         });
+
+        // Winamp status
+        const winampStatusDiv = document.getElementById('winamp-status');
+        const currentTrackTitleSpan = document.getElementById('current-track-title');
+        const playbackStatusSpan = document.getElementById('playback-status');
+        const playbackCurrentTimeSpan = document.getElementById('playback-current-time');
+        const playbackTotalTimeSpan = document.getElementById('playback-total-time');
+        const playlistLengthSpan = document.getElementById('playlist-length');
+        const playlistPositionSpan = document.getElementById('playlist-position');
+        const shuffleStatusSpan = document.getElementById('shuffle-status');
+        const repeatStatusSpan = document.getElementById('repeat-status');
+        const shuffleToggleButton = document.getElementById('shuffle-toggle-btn');
+        const repeatToggleButton = document.getElementById('repeat-toggle-btn');
+
+        socket.on('winamp_status', (response) => {
+            if (response.status === 'attempted') {
+                winampStatusDiv.innerHTML = `<div class="alert alert-info">Attempted Winamp action: ${response.action}.</div>`;
+            }
+        });
+
+        socket.on('winamp_track_info', (response) => {
+            currentTrackTitleSpan.textContent = response.title;
+            playbackStatusSpan.textContent = response.status;
+        });
+
+        socket.on('winamp_playlist_info', (response) => {
+            playlistLengthSpan.textContent = response.length;
+            playlistPositionSpan.textContent = response.position;
+        });
+
+        socket.on('winamp_jump_status', (response) => {
+            if (response.success) {
+                winampStatusDiv.innerHTML = `<div class="alert alert-success">Jumped to track index ${response.index}.</div>`;
+            } else {
+                winampStatusDiv.innerHTML = `<div class="alert alert-danger">Failed to jump to track index ${response.index}.</div>`;
+            }
+        });
+
+        socket.on('winamp_toggle_shuffle_status', (response) => {
+            if (response.success) {
+                winampStatusDiv.innerHTML = `<div class="alert alert-success">Shuffle toggled.</div>`;
+                socket.emit('winamp_get_playlist_info'); // Refresh playlist info
+                socket.emit('winamp_get_shuffle_status'); // Refresh shuffle status
+            } else {
+                winampStatusDiv.innerHTML = `<div class="alert alert-danger">Failed to toggle shuffle.</div>`;
+            }
+        });
+
+        socket.on('winamp_toggle_repeat_status', (response) => {
+            if (response.success) {
+                winampStatusDiv.innerHTML = `<div class="alert alert-success">Repeat toggled.</div>`;
+                socket.emit('winamp_get_playlist_info'); // Refresh playlist info
+                socket.emit('winamp_get_repeat_status'); // Refresh repeat status
+            } else {
+                winampStatusDiv.innerHTML = `<div class="alert alert-danger">Failed to toggle repeat.</div>`;
+            }
+        });
+
+        socket.on('winamp_playback_time', (response) => {
+            const formatTime = (ms) => {
+                const totalSeconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            };
+            playbackCurrentTimeSpan.textContent = formatTime(response.current_ms);
+            playbackTotalTimeSpan.textContent = formatTime(response.total_ms);
+        });
+
+        socket.on('winamp_add_file_status', (response) => {
+            if (response.success) {
+                winampStatusDiv.innerHTML = `<div class="alert alert-success">Successfully added ${response.file_path} to playlist.</div>`;
+                socket.emit('winamp_get_playlist_info'); // Refresh playlist info
+            } else {
+                winampStatusDiv.innerHTML = `<div class="alert alert-danger">Failed to add ${response.file_path} to playlist.</div>`;
+            }
+        });
+
+        socket.on('winamp_clear_playlist_status', (response) => {
+            if (response.success) {
+                winampStatusDiv.innerHTML = `<div class="alert alert-success">Playlist cleared successfully.</div>`;
+                socket.emit('winamp_get_playlist_info'); // Refresh playlist info
+            } else {
+                winampStatusDiv.innerHTML = `<div class="alert alert-danger">Failed to clear playlist.</div>`;
+            }
+        });
+
+        // New SocketIO events for shuffle/repeat status
+        socket.on('winamp_shuffle_status', (response) => {
+            shuffleStatusSpan.textContent = response.status;
+            if (response.status === 'On') {
+                shuffleToggleButton.classList.remove('btn-secondary');
+                shuffleToggleButton.classList.add('btn-success');
+            } else {
+                shuffleToggleButton.classList.remove('btn-success');
+                shuffleToggleButton.classList.add('btn-secondary');
+            }
+        });
+
+        socket.on('winamp_repeat_status', (response) => {
+            repeatStatusSpan.textContent = response.status;
+            if (response.status === 'On') {
+                repeatToggleButton.classList.remove('btn-secondary');
+                repeatToggleButton.classList.add('btn-success');
+            } else {
+                repeatToggleButton.classList.remove('btn-success');
+                repeatToggleButton.classList.add('btn-secondary');
+            }
+        });
+
+        // Initial load for Winamp tab
+        document.getElementById('winamp-tab').addEventListener('click', () => {
+            socket.emit('winamp_get_track_info');
+            socket.emit('winamp_get_playlist_info');
+            socket.emit('winamp_get_playback_time');
+            socket.emit('winamp_get_shuffle_status'); // Get initial shuffle status
+            socket.emit('winamp_get_repeat_status'); // Get initial repeat status
+            winampStatusDiv.innerHTML = ''; // Clear status when tab is opened
+        });
+
+        // Periodically refresh playback time
+        setInterval(() => {
+            if (document.getElementById('winamp-tab').classList.contains('active')) {
+                socket.emit('winamp_get_playback_time');
+            }
+        }, 1000); // Refresh every second
+
+    </script>
 
         // Remove old audio device control logic
         // const audioDeviceSelect = document.getElementById('audio-device-select');

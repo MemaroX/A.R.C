@@ -168,3 +168,163 @@ class AudioController:
         # Close the window (e.g., by pressing Escape)
         pyautogui.press('esc')
         print("Please verify the audio output has switched.")
+
+
+# Winamp IPC Constants
+WM_COMMAND = 0x0111
+WM_USER = 0x0400
+
+IPC_GETVERSION = 0 # Returns Winamp version
+IPC_PLAY = 104 # Play
+IPC_PAUSE = 105 # Pause
+IPC_STOP = 106 # Stop
+IPC_NEXT = 40044 # Next track
+IPC_PREV = 40045 # Previous track
+IPC_SETVOLUME = 114 # Set volume (0-255)
+IPC_GETOUTPUTTIME = 107 # Get current track position/length
+IPC_GETPLAYLISTTITLE = 212 # Get title of playlist item at index
+IPC_GETPLAYLISTLENGTH = 211 # Get playlist length
+IPC_ISPLAYING = 104 # Get playback status (0=stopped, 1=playing, 3=paused)
+IPC_ENQUEUEFILE = 100 # Enqueue file (uses WM_COPYDATA)
+IPC_DELETE = 101 # Clear playlist
+IPC_GETLISTPOS = 124 # Get current playlist position
+IPC_SETPLAYLISTPOS = 125 # Set current playlist position
+IPC_GETSHUFFLE = 250 # Get shuffle status
+IPC_GETREPEAT = 251 # Get repeat status
+
+# WM_COMMAND messages for toggles
+WINAMP_SHUFFLE_TOGGLE = 40023
+WINAMP_REPEAT_TOGGLE = 40022
+
+class WinampController:
+    def __init__(self):
+        self.winamp_hwnd = None
+
+    def _find_winamp_window(self):
+        if self.winamp_hwnd and win32gui.IsWindow(self.winamp_hwnd):
+            return self.winamp_hwnd
+        
+        self.winamp_hwnd = win32gui.FindWindow("Winamp v1.x", None) # Main window
+        if not self.winamp_hwnd:
+            self.winamp_hwnd = win32gui.FindWindow("Winamp AVS", None)
+        
+        if not self.winamp_hwnd:
+            print("Winamp window not found. Please ensure Winamp is running.")
+        return self.winamp_hwnd
+
+    def _send_winamp_command(self, command, param=0):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            win32api.SendMessage(hwnd, WM_COMMAND, command, param)
+            return True
+        return False
+
+    def _send_winamp_ipc(self, command, param=0):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            result = win32api.SendMessage(hwnd, WM_USER, param, command)
+            return result
+        return False
+
+    def play_pause(self):
+        print("Winamp: Play/Pause")
+        # WM_COMMAND with 40046 is the play/pause toggle
+        return self._send_winamp_command(40046)
+
+    def next_track(self):
+        print("Winamp: Next Track")
+        return self._send_winamp_command(IPC_NEXT)
+
+    def prev_track(self):
+        print("Winamp: Previous Track")
+        return self._send_winamp_command(IPC_PREV)
+
+    def set_volume(self, volume_percent):
+        winamp_volume = int((volume_percent / 100) * 255)
+        print(f"Winamp: Set Volume to {volume_percent}% ({winamp_volume}/255)")
+        return self._send_winamp_ipc(IPC_SETVOLUME, winamp_volume)
+
+    def get_current_track_title(self):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            title = win32gui.GetWindowText(hwnd)
+            if " - Winamp" in title:
+                return title.replace(" - Winamp", "").strip()
+            return title
+        return "N/A"
+
+    def get_playback_status(self):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            status = self._send_winamp_ipc(IPC_ISPLAYING, 0)
+            if status == 1:
+                return "Playing"
+            elif status == 3:
+                return "Paused"
+            elif status == 0:
+                return "Stopped"
+        return "Unknown"
+
+    def get_playlist_length(self):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            length = self._send_winamp_ipc(IPC_GETPLAYLISTLENGTH, 0)
+            return length if length != -1 else 0
+        return 0
+
+    def get_playlist_position(self):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            pos = self._send_winamp_ipc(IPC_GETLISTPOS, 0)
+            return pos if pos != -1 else 0
+        return 0
+
+    def jump_to_track(self, index):
+        print(f"Winamp: Jump to track {index}")
+        return self._send_winamp_ipc(IPC_SETPLAYLISTPOS, index)
+
+    def toggle_shuffle(self):
+        print("Winamp: Toggle Shuffle")
+        return self._send_winamp_command(WINAMP_SHUFFLE_TOGGLE)
+
+    def toggle_repeat(self):
+        print("Winamp: Toggle Repeat")
+        return self._send_winamp_command(WINAMP_REPEAT_TOGGLE)
+
+    def get_shuffle_status(self):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            status = self._send_winamp_ipc(IPC_GETSHUFFLE, 0)
+            return "On" if status == 1 else "Off"
+        return "Unknown"
+
+    def get_repeat_status(self):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            status = self._send_winamp_ipc(IPC_GETREPEAT, 0)
+            return "On" if status == 1 else "Off"
+        return "Unknown"
+
+    def get_playback_time(self):
+        hwnd = self._find_winamp_window()
+        if hwnd:
+            current_ms = self._send_winamp_ipc(IPC_GETOUTPUTTIME, 0) # Current position in ms
+            total_ms = self._send_winamp_ipc(IPC_GETOUTPUTTIME, 1) # Total length in seconds, need to convert to ms
+            
+            if current_ms != -1 and total_ms != -1:
+                total_ms = total_ms * 1000 # Convert seconds to milliseconds
+                return {'current_ms': current_ms, 'total_ms': total_ms}
+        return {'current_ms': 0, 'total_ms': 0}
+
+    def add_file_to_playlist(self, file_path):
+        # IPC_ENQUEUEFILE uses WM_COPYDATA, which is complex to implement directly in pywin32.
+        # It requires creating a COPYDATASTRUCT and passing a pointer to it.
+        # For now, this remains a known limitation for direct IPC.
+        print(f"Adding file {file_path} to Winamp playlist is complex via IPC_ENQUEUEFILE (WM_COPYDATA).")
+        print("Consider using a command-line utility like clever.exe or WACommand.exe if available, or manual drag-and-drop.")
+        return False
+
+    def clear_playlist(self):
+        print("Winamp: Clear Playlist")
+        return self._send_winamp_ipc(IPC_DELETE)
+
