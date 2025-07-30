@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO
-from controllers import MouseController, KeyboardController, MediaController, PowerController, AppLauncher, FileBrowser
+from controllers import MouseController, KeyboardController, MediaController, PowerController, AppLauncher, FileBrowser, AudioController
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -12,6 +12,7 @@ media_controller = MediaController()
 power_controller = PowerController()
 app_launcher = AppLauncher()
 file_browser = FileBrowser()
+audio_controller = AudioController()
 
 @app.route('/')
 def index():
@@ -60,6 +61,19 @@ def handle_power(data):
 @socketio.on('launch')
 def handle_launch(data):
     app_launcher.launch_app(data['app'])
+
+@socketio.on('list_audio_devices')
+def handle_list_audio_devices():
+    devices = audio_controller.list_audio_devices()
+    socketio.emit('audio_devices_list', devices)
+
+
+
+@socketio.on('switch_global_audio')
+def handle_switch_global_audio(data):
+    device_name = data['device_name']
+    audio_controller.switch_global_audio_output(device_name)
+    socketio.emit('global_audio_switch_status', {'device_name': device_name, 'status': 'attempted'})
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

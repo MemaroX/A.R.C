@@ -91,7 +91,7 @@
 
             <div class="tab-pane fade" id="media" role="tabpanel" aria-labelledby="media-tab">
                 <h3 class="mt-2">Media Controls</h3>
-                                <div class="btn-group">
+                <div class="btn-group mb-3">
                     <button class="btn btn-info" onclick="socket.emit('media', {'key': 'prevtrack'})"><i class="fas fa-backward"></i></button>
                     <button class="btn btn-info" onclick="socket.emit('media', {'key': 'playpause'})"><i class="fas fa-play"></i> / <i class="fas fa-pause"></i></button>
                     <button class="btn btn-info" onclick="socket.emit('media', {'key': 'nexttrack'})"><i class="fas fa-forward"></i></button>
@@ -99,6 +99,13 @@
                     <button class="btn btn-info" onclick="socket.emit('media', {'key': 'volumedown'})"><i class="fas fa-volume-down"></i></button>
                     <button class="btn btn-info" onclick="socket.emit('media', {'key': 'volumemute'})"><i class="fas fa-volume-mute"></i></button>
                 </div>
+
+                <h4 class="mt-4">Global Audio Output</h4>
+                <div class="btn-group mb-3">
+                    <button class="btn btn-primary" onclick="socket.emit('switch_global_audio', {'device_name': 'Speakers'})">Switch to Speakers</button>
+                    <button class="btn btn-primary" onclick="socket.emit('switch_global_audio', {'device_name': 'Headphones'})">Switch to Headphones</button>
+                </div>
+                <div id="audio-switch-status" class="mt-2"></div>
             </div>
 
             <div class="tab-pane fade" id="power" role="tabpanel" aria-labelledby="power-tab">
@@ -182,6 +189,50 @@
         }
 
         document.getElementById('files-tab').addEventListener('click', () => loadFiles(''));
+
+        // Audio device control
+        const audioSwitchStatusDiv = document.getElementById('audio-switch-status');
+
+        socket.on('global_audio_switch_status', (response) => {
+            if (response.status === 'attempted') {
+                audioSwitchStatusDiv.innerHTML = `<div class="alert alert-info">Attempted to switch global audio to ${response.device_name}. Please verify.</div>`;
+            }
+        });
+
+        // Remove old audio device control logic
+        // const audioDeviceSelect = document.getElementById('audio-device-select');
+        // const audioStatusDiv = document.getElementById('audio-status');
+
+        // socket.on('audio_devices_list', (devices) => {
+        //     audioDeviceSelect.innerHTML = '<option selected>Select Device</option>';
+        //     devices.forEach(device => {
+        //         const option = document.createElement('option');
+        //         option.value = device.FriendlyName;
+        //         option.textContent = device.FriendlyName + (device.IsDefault ? ' (Default)' : '');
+        //         audioDeviceSelect.appendChild(option);
+        //     });
+        // });
+
+        // socket.on('audio_device_set_status', (response) => {
+        //     if (response.success) {
+        //         audioStatusDiv.innerHTML = `<div class="alert alert-success">Successfully set ${response.device_name} as default.</div>`;
+        //         socket.emit('list_audio_devices'); // Refresh list to show new default
+        //     } else {
+        //         audioStatusDiv.innerHTML = `<div class="alert alert-danger">Failed to set ${response.device_name} as default.</div>`;
+        //     }
+        // });
+
+        // function switchAudioDevice() {
+        //     const selectedDevice = audioDeviceSelect.value;
+        //     if (selectedDevice && selectedDevice !== 'Select Device') {
+        //         socket.emit('set_audio_device', { 'device_name': selectedDevice });
+        //     }
+        // }
+
+        // document.getElementById('media-tab').addEventListener('click', () => {
+        //     socket.emit('list_audio_devices');
+        //     audioStatusDiv.innerHTML = ''; // Clear status when tab is opened
+        // });
 
     </script>
 
